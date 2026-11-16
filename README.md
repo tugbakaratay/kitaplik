@@ -1,0 +1,1 @@
+Kişisel kitaplık uygulaması.
