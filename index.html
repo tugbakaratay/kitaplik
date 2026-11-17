@@ -394,7 +394,18 @@ const depo = yerelMod ? {
 const BULUT_SABIT = { url: 'https://bttryupvwoliudnyhclp.supabase.co', anahtar: 'sb_publishable_xMLItEkqG8feLqwqxp11hQ_shNfaI3h' };
 const bulutOku = (ad, vars) => { try { return JSON.parse(localStorage.getItem(ad)) || vars; } catch { return vars; } };
 let bulutAyar = BULUT_SABIT.url ? BULUT_SABIT : bulutOku('kitaplik.bulut', { url: '', anahtar: '' });
-let oturum = bulutOku('kitaplik.oturum', null);
+// Bilgisayardaki sunucudan açılan sayfada oturumu ve eşitlemeyi sunucu yürütür (sayfa kapalıyken de eşitlesin diye);
+// orada "oturum" yalnızca kimin giriş yaptığını göstermek içindir, anahtar içermez.
+let oturum = yerelMod ? bulutOku('kitaplik.oturum', null) : null;
+let sunucuSurum = null;
+async function sunucuDurum(d) {
+  try { d = d || await istek('/api/bulut'); } catch { return; }
+  oturum = d.girisVar ? { eposta: d.eposta } : null;
+  bulutDurum = d.durum || '';
+  if (sunucuSurum !== null && d.surum !== sunucuSurum) await yukle(false); // sunucu buluttan yeni kayıt aldı
+  sunucuSurum = d.surum;
+  bulutCiz();
+}
 let bulutDurum = '', sifreYenileme = false;
 const UYGULAMA_ADRESI = 'https://tugbakaratay.github.io/kitaplik/'; // e-postadaki bağlantılar buraya döner
 
@@ -421,6 +432,14 @@ async function oturumTazele() {
 const zaman = k => k.guncelleme || k.eklenme || '';
 let esitleniyor = false, esitleBekleyen = null;
 async function esitle(sessiz = true) {
+  if (!yerelMod) { // bilgisayar: eşitlemeyi sunucu yapar
+    if (!oturum || esitleniyor) return;
+    esitleniyor = true; bulutCiz();
+    try { const d = await istek('/api/bulut/esitle', 'POST'); esitleniyor = false; await sunucuDurum(d); }
+    catch (e) { bulutDurum = 'Eşitlenemedi: ' + e.message; }
+    finally { esitleniyor = false; bulutCiz(); }
+    return;
+  }
   if (!oturum || !bulutAyar.url || esitleniyor) return;
   if (!navigator.onLine) { bulutDurum = 'Çevrimdışı; bağlantı gelince eşitlenecek.'; return bulutCiz(); }
   esitleniyor = true; bulutCiz();
@@ -449,7 +468,8 @@ async function esitle(sessiz = true) {
     if (!sessiz) bildir(bulutDurum);
   } finally { esitleniyor = false; bulutCiz(); }
 }
-const esitleSonra = () => { clearTimeout(esitleBekleyen); esitleBekleyen = setTimeout(() => esitle(), 2500); };
+const esitleSonra = () => { if (!yerelMod) return; clearTimeout(esitleBekleyen); esitleBekleyen = setTimeout(() => esitle(), 2500); };
+if (!yerelMod) { sunucuDurum(); setInterval(sunucuDurum, 20000); }
 addEventListener('online', () => esitle());
 
 function bulutCiz() {
@@ -904,8 +924,13 @@ async function bulutGiris() {
   const eposta = f.elements.eposta.value.trim();
   const dugme = $('#bulutGonder'); dugme.disabled = true; dugme.textContent = 'Bekle…';
   try {
+    if (!yerelMod && !kaydol) { // bilgisayar: girişi sunucu yapar ve oturumu kendinde tutar
+      const d = await istek('/api/bulut/giris', 'POST', { eposta, sifre: f.elements.sifre.value });
+      f.elements.sifre.value = ''; hesapMesaj();
+      return await sunucuDurum(d);
+    }
     const v = await bulutIstek(kaydol ? '/auth/v1/signup' : '/auth/v1/token?grant_type=password', { method: 'POST', body: JSON.stringify({ email: eposta, password: f.elements.sifre.value }) });
-    if (!v || !v.access_token) {
+    if (!v || !v.access_token || !yerelMod) {
       hesapModuSec('giris');
       return hesapMesaj('basari', `Hesabın oluşturuldu. ${eposta} adresine bir onay iletisi gönderdik; içindeki bağlantıya tıkla, sonra burada "Giriş yap"a bas. (Bağlantı açılınca hata sayfası görürsen önemseme.)`);
     }
@@ -960,7 +985,9 @@ $('#yeniSifreForm').addEventListener('submit', async e => {
 
 $('#girissiz').onclick = () => { try { localStorage.setItem('kitaplik.girissiz', '1'); } catch {} $('#bulutPencere').close(); };
 $('#bulutSimdi').onclick = () => esitle(false);
-$('#bulutCikis').onclick = () => { oturumKaydet(null); bulutDurum = ''; hesapMesaj('', 'Çıkış yapıldı. Kitaplar bu cihazda durmaya devam eder.'); bulutCiz(); };
+$('#bulutCikis').onclick = async () => {
+  if (!yerelMod) { try { await istek('/api/bulut/cikis', 'POST'); } catch {} oturum = null; } else oturumKaydet(null);
+  bulutDurum = ''; hesapMesaj('', 'Çıkış yapıldı. Kitaplar bu cihazda durmaya devam eder.'); bulutCiz(); };
 bulutCiz();
 
 // ---------- menü ve filtre ----------
