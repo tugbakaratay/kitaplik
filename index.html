@@ -118,6 +118,7 @@
   <div class="ust">
     <h1>Kitaplık <small id="sayac"></small></h1>
     <button id="gorunumDugme"></button>
+    <button id="bulutDugme">Bulut</button>
     <button id="topluDugme">Toplu ekle</button>
     <button id="disaDugme" title="Tüm kitapları CSV dosyası olarak indir">Dışa aktar</button>
     <a class="dugme" href="/cep-kopyasi" download="kitaplik.html" title="Telefona indirilen, internetsiz açılan salt okunur kopya">Çevrimdışı kopya</a>
@@ -189,6 +190,32 @@
   </div>
 </dialog>
 
+<dialog id="bulutPencere">
+  <h2>Bulut eşitleme</h2>
+  <p class="ipucu">Giriş yaptığın her cihaz aynı kitaplığı görür. Uygulama internetsiz de açılır; bağlantı gelince kendiliğinden eşitlenir.</p>
+  <p id="bulutDurum" class="ipucu" style="color:var(--yazi)"></p>
+  <form id="bulutGirisAlani" class="form" style="grid-template-columns:1fr">
+    <div id="bulutAyarAlani" style="display:grid;gap:10px">
+      <label>Supabase proje adresi<input name="url" inputmode="url" placeholder="https://….supabase.co" autocomplete="off"></label>
+      <label>Herkese açık anahtar (publishable / anon)<input name="anahtar" autocomplete="off"></label>
+    </div>
+    <label>E-posta<input name="eposta" type="email" autocomplete="username" required></label>
+    <label>Şifre<input name="sifre" type="password" autocomplete="current-password" required minlength="6"></label>
+    <div class="dugmeler">
+      <button type="button" id="bulutKaydol">İlk kez: hesap oluştur</button>
+      <span class="bosluk"></span>
+      <button type="button" data-kapat>Kapat</button>
+      <button type="submit" class="ana">Giriş yap</button>
+    </div>
+  </form>
+  <div id="bulutAcikAlani" class="dugmeler" hidden>
+    <button type="button" id="bulutCikis">Çıkış yap</button>
+    <span class="bosluk"></span>
+    <button type="button" data-kapat>Kapat</button>
+    <button type="button" id="bulutSimdi" class="ana">Şimdi eşitle</button>
+  </div>
+</dialog>
+
 <div id="vitrin" hidden>
   <div class="perde"></div>
   <div class="sahne" role="dialog" aria-modal="true" aria-labelledby="vAd">
@@ -247,7 +274,8 @@ const yeniKimlik = () => crypto.randomUUID ? crypto.randomUUID()
 // "okundu" işareti bir tarafta varsa korunur. Dolu alanların üzerine yazılmaz.
 function birlestir(mevcut, gelenler) {
   let eklenen = 0, guncellenen = 0, atlanan = 0;
-  const kimlikIle = new Map(mevcut.map(k => [k.id, k])), anahtarIle = new Map(mevcut.map(k => [anahtar(k), k]));
+  const canli = mevcut.filter(k => !k.silindi), simdi = new Date().toISOString();
+  const kimlikIle = new Map(canli.map(k => [k.id, k])), anahtarIle = new Map(canli.map(k => [anahtar(k), k]));
   for (const ham of gelenler) {
     if (!String(ham.ad || '').trim()) { atlanan++; continue; }
     const eski = (ham.id && kimlikIle.get(ham.id)) || anahtarIle.get(anahtar(ham));
@@ -255,14 +283,14 @@ function birlestir(mevcut, gelenler) {
       let degisti = false;
       for (const a of ALANLAR) if (!eski[a] && ham[a]) { eski[a] = String(ham[a]).trim(); degisti = true; }
       if (ham.okundu === true && !eski.okundu) { eski.okundu = true; degisti = true; }
-      degisti ? guncellenen++ : atlanan++;
+      if (degisti) { eski.guncelleme = simdi; guncellenen++; } else atlanan++;
       continue;
     }
     const k = {};
     for (const a of ALANLAR) k[a] = String(ham[a] ?? '').trim();
     k.okundu = ham.okundu === true;
-    k.id = /^[0-9a-f-]{36}$/.test(ham.id || '') ? ham.id : yeniKimlik();
-    k.eklenme = new Date().toISOString();
+    k.id = (/^[0-9a-f-]{36}$/.test(ham.id || '') && !mevcut.some(x => x.id === ham.id)) ? ham.id : yeniKimlik();
+    k.eklenme = k.guncelleme = simdi;
     mevcut.push(k); kimlikIle.set(k.id, k); anahtarIle.set(anahtar(k), k); eklenen++;
   }
   return { eklenen, guncellenen, atlanan };
@@ -272,15 +300,18 @@ const yerelOku = () => JSON.parse(localStorage.getItem(DEPO_ADI) || '[]');
 const yerelYaz = liste => localStorage.setItem(DEPO_ADI, JSON.stringify(liste));
 const depo = yerelMod ? {
   async hepsi() { return yerelOku(); },
-  async ekle(k) { const l = yerelOku(); l.push({ ...k, id: yeniKimlik(), eklenme: new Date().toISOString() }); yerelYaz(l); },
+  async ekle(k) { const l = yerelOku(), t = new Date().toISOString(); l.push({ ...k, id: yeniKimlik(), eklenme: t, guncelleme: t }); yerelYaz(l); },
   async guncelle(id, k) {
     const l = yerelOku(), i = l.findIndex(x => x.id === id);
     if (i < 0) throw new Error('Kitap bulunamadı.');
     l[i] = { ...l[i], ...k, id, guncelleme: new Date().toISOString() }; yerelYaz(l);
   },
-  async sil(id) { yerelYaz(yerelOku().filter(x => x.id !== id)); },
-  async iceAktar(liste) { const l = yerelOku(), s = birlestir(l, liste); yerelYaz(l); return s; }
+  // Silinen kayıt atılmaz, işaretlenir; yoksa bulut eşitlemesi onu öteki cihazdan geri getirir.
+  async sil(id) { yerelYaz(yerelOku().map(x => x.id === id ? { ...x, silindi: true, guncelleme: new Date().toISOString() } : x)); },
+  async iceAktar(liste) { const l = yerelOku(), s = birlestir(l, liste); yerelYaz(l); return s; },
+  async tumunuYaz(liste) { yerelYaz(liste); }
 } : {
+  tumunuYaz: liste => istek('/api/tum', 'PUT', { kitaplar: liste }),
   async hepsi() { return (await istek('/api/kitaplar')).kitaplar; },
   ekle: k => istek('/api/kitaplar', 'POST', k),
   guncelle: (id, k) => istek('/api/kitaplar/' + id, 'PUT', k),
@@ -288,8 +319,82 @@ const depo = yerelMod ? {
   iceAktar: liste => istek('/api/ice-aktar', 'POST', { kitaplar: liste })
 };
 
-async function yukle() {
-  try { kitaplar = await depo.hepsi(); ciz(); }
+// ---------- bulut (Supabase) ----------
+// Telefon ve bilgisayar aynı listeyi paylaşsın diye kayıtları Supabase'deki "kitaplar" tablosuyla eşitler.
+// Uygulama yine önce kendi deposundan çalışır (internetsiz de açılır); bağlantı varken iki taraf birleştirilir:
+// her kayıtta en son değiştirilen hali kazanır. Kurulum: bulut-kurulum.sql ve BENIOKU.md.
+// Buradaki anahtar Supabase'in herkese açık (publishable/anon) anahtarıdır; veriyi koruyan şey giriş ve tablo kuralıdır.
+const BULUT_SABIT = { url: 'https://bttryupvwoliudnyhclp.supabase.co', anahtar: 'sb_publishable_xMLItEkqG8feLqwqxp11hQ_shNfaI3h' };
+const bulutOku = (ad, vars) => { try { return JSON.parse(localStorage.getItem(ad)) || vars; } catch { return vars; } };
+let bulutAyar = BULUT_SABIT.url ? BULUT_SABIT : bulutOku('kitaplik.bulut', { url: '', anahtar: '' });
+let oturum = bulutOku('kitaplik.oturum', null);
+let bulutDurum = '';
+
+async function bulutIstek(yol, secenek = {}) {
+  const y = await fetch(bulutAyar.url.replace(/\/+$/, '') + yol, {
+    ...secenek,
+    headers: { apikey: bulutAyar.anahtar, 'Content-Type': 'application/json', ...(oturum && !yol.startsWith('/auth/') ? { Authorization: 'Bearer ' + oturum.access_token } : {}), ...(secenek.headers || {}) }
+  });
+  const metin = await y.text();
+  const veri = metin ? JSON.parse(metin) : null;
+  if (!y.ok) throw new Error((veri && (veri.msg || veri.error_description || veri.message || veri.error)) || 'Bulut isteği başarısız (' + y.status + ')');
+  return veri;
+}
+
+function oturumKaydet(v, eposta) {
+  oturum = v && v.access_token ? { access_token: v.access_token, refresh_token: v.refresh_token, bitis: Date.now() + (v.expires_in || 3600) * 1000, eposta: eposta || (v.user && v.user.email) || (oturum && oturum.eposta) || '' } : null;
+  try { oturum ? localStorage.setItem('kitaplik.oturum', JSON.stringify(oturum)) : localStorage.removeItem('kitaplik.oturum'); } catch {}
+}
+async function oturumTazele() {
+  if (!oturum || oturum.bitis - Date.now() > 120000) return;
+  oturumKaydet(await bulutIstek('/auth/v1/token?grant_type=refresh_token', { method: 'POST', body: JSON.stringify({ refresh_token: oturum.refresh_token }) }));
+}
+
+const zaman = k => k.guncelleme || k.eklenme || '';
+let esitleniyor = false, esitleBekleyen = null;
+async function esitle(sessiz = true) {
+  if (!oturum || !bulutAyar.url || esitleniyor) return;
+  if (!navigator.onLine) { bulutDurum = 'Çevrimdışı; bağlantı gelince eşitlenecek.'; return bulutCiz(); }
+  esitleniyor = true;
+  try {
+    await oturumTazele();
+    const uzak = [];
+    for (let n = 0; ; n += 1000) { // Supabase bir istekte en çok 1000 satır verir
+      const parca = await bulutIstek(`/rest/v1/kitaplar?select=veri&order=id&limit=1000&offset=${n}`);
+      uzak.push(...parca.map(s => s.veri));
+      if (parca.length < 1000) break;
+    }
+    const yerel = await depo.hepsi();
+    const ym = new Map(yerel.map(k => [k.id, k])), um = new Map(uzak.map(k => [k.id, k]));
+    const gonder = yerel.filter(k => !um.has(k.id) || zaman(k) > zaman(um.get(k.id)));
+    const al = uzak.filter(u => !ym.has(u.id) || zaman(u) > zaman(ym.get(u.id)));
+    if (al.length) { for (const u of al) ym.set(u.id, u); await depo.tumunuYaz([...ym.values()]); }
+    for (let i = 0; i < gonder.length; i += 200) {
+      await bulutIstek('/rest/v1/kitaplar?on_conflict=id', { method: 'POST', headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
+        body: JSON.stringify(gonder.slice(i, i + 200).map(k => ({ id: k.id, veri: k, guncelleme: zaman(k) || new Date(0).toISOString(), silindi: !!k.silindi }))) });
+    }
+    bulutDurum = `Eşitlendi (${new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}): ${gonder.length} gönderildi, ${al.length} alındı.`;
+    if (al.length) await yukle(false);
+    if (!sessiz) bildir(bulutDurum);
+  } catch (e) {
+    bulutDurum = 'Eşitlenemedi: ' + e.message;
+    if (!sessiz) bildir(bulutDurum);
+  } finally { esitleniyor = false; bulutCiz(); }
+}
+const esitleSonra = () => { clearTimeout(esitleBekleyen); esitleBekleyen = setTimeout(() => esitle(), 2500); };
+addEventListener('online', () => esitle());
+
+function bulutCiz() {
+  const d = $('#bulutDugme'); if (!d) return;
+  d.textContent = oturum ? 'Bulut ✓' : 'Bulut';
+  $('#bulutDurum').textContent = oturum ? `${oturum.eposta} ile giriş yapıldı. ${bulutDurum}` : (bulutAyar.url ? 'Giriş yapılmadı.' : 'Bulut henüz ayarlanmadı.');
+  $('#bulutGirisAlani').hidden = !!oturum;
+  $('#bulutAcikAlani').hidden = !oturum;
+  $('#bulutAyarAlani').hidden = !!BULUT_SABIT.url;
+}
+
+async function yukle(esitlensin = true) {
+  try { kitaplar = (await depo.hepsi()).filter(k => !k.silindi); ciz(); if (esitlensin) esitleSonra(); }
   catch (e) { $('#bos').hidden = false; $('#bos').textContent = e.message; }
 }
 
@@ -351,7 +456,7 @@ function ciz() {
     const et = document.createElement('label'); et.className = 'okundu';
     const kutu = document.createElement('input'); kutu.type = 'checkbox'; kutu.checked = k.okundu;
     kutu.onchange = async () => {
-      try { await depo.guncelle(k.id, { ...k, okundu: kutu.checked }); k.okundu = kutu.checked; ciz(); }
+      try { await depo.guncelle(k.id, { ...k, okundu: kutu.checked }); k.okundu = kutu.checked; ciz(); esitleSonra(); }
       catch (e) { kutu.checked = k.okundu; bildir(e.message); }
     };
     et.append(kutu, 'Okundu');
@@ -461,7 +566,7 @@ $('#vDuzenle').onclick = () => { const k = vitrindeki; vitrinKapat(false); pence
 $('#vOkundu').onchange = async e => {
   const k = vitrindeki; if (!k) return;
   try {
-    await depo.guncelle(k.id, { ...k, okundu: e.target.checked }); k.okundu = e.target.checked; ciz();
+    await depo.guncelle(k.id, { ...k, okundu: e.target.checked }); k.okundu = e.target.checked; ciz(); esitleSonra();
     const sirt = sirtBul(k.id); if (sirt) sirt.classList.add('cekildi');
   } catch (err) { e.target.checked = k.okundu; bildir(err.message); }
 };
@@ -525,7 +630,7 @@ $('#topluKapak').onclick = async () => {
     // Baskının adı kitabın adını tam sözcük olarak içermeli ("İki Kule" ≠ "İki Kuleli Yalı").
     const sozcukler = s => ' ' + duz(s).replace(/[^a-z0-9]+/g, ' ').trim() + ' ';
     const ad = sozcukler(k.ad);
-    const uygun = adaylar.find(a => a.turkce && (sozcukler(a.baslik).includes(ad) || (a.baslik.length > 5 && ad.includes(sozcukler(a.baslik)))));
+    const uygun = adaylar.find(a => a.turkce && sozcukler(a.baslik.split(/[:(]/)[0]) === sozcukler(k.ad.split(/[:(]/)[0]));
     if (uygun) {
       try { await depo.guncelle(k.id, { ...k, kapak: kapakAdresi(uygun.no, 'L') }); k.kapak = kapakAdresi(uygun.no, 'L'); bulunan++; } catch {}
     }
@@ -675,6 +780,36 @@ if (yerelMod) {
   if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); // tarayıcı veriyi kendiliğinden silmesin
   if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js');
 }
+
+// ---------- bulut penceresi ----------
+$('#bulutDugme').onclick = () => {
+  const f = $('#bulutGirisAlani');
+  f.elements.url.value = bulutAyar.url; f.elements.anahtar.value = bulutAyar.anahtar;
+  bulutCiz(); $('#bulutPencere').showModal();
+};
+async function bulutGiris(kaydol) {
+  const f = $('#bulutGirisAlani');
+  if (!f.reportValidity()) return;
+  if (!BULUT_SABIT.url) {
+    bulutAyar = { url: f.elements.url.value.trim(), anahtar: f.elements.anahtar.value.trim() };
+    if (!/^https:\/\/.+/.test(bulutAyar.url) || !bulutAyar.anahtar) return bildir('Önce Supabase proje adresini ve anahtarı gir.');
+    try { localStorage.setItem('kitaplik.bulut', JSON.stringify(bulutAyar)); } catch {}
+  }
+  const govde = JSON.stringify({ email: f.elements.eposta.value.trim(), password: f.elements.sifre.value });
+  try {
+    const v = await bulutIstek(kaydol ? '/auth/v1/signup' : '/auth/v1/token?grant_type=password', { method: 'POST', body: govde });
+    f.elements.sifre.value = '';
+    if (!v || !v.access_token) { bulutDurum = ''; return bildir('Hesap oluşturuldu. E-postana gelen onay bağlantısına tıkla, sonra giriş yap.'); }
+    oturumKaydet(v, f.elements.eposta.value.trim());
+    bulutDurum = 'Eşitleniyor…'; bulutCiz();
+    await esitle(false);
+  } catch (e) { bildir((kaydol ? 'Hesap oluşturulamadı: ' : 'Giriş yapılamadı: ') + e.message); }
+}
+$('#bulutGirisAlani').addEventListener('submit', e => { e.preventDefault(); bulutGiris(false); });
+$('#bulutKaydol').onclick = () => bulutGiris(true);
+$('#bulutSimdi').onclick = () => esitle(false);
+$('#bulutCikis').onclick = () => { oturumKaydet(null); bulutDurum = ''; bulutCiz(); bildir('Çıkış yapıldı. Kitaplar bu cihazda durmaya devam eder.'); };
+bulutCiz();
 
 $('#ekleDugme').onclick = () => pencereAc(null);
 for (const d of document.querySelectorAll('[data-kapat]')) d.onclick = () => d.closest('dialog').close();
