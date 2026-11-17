@@ -545,12 +545,15 @@ function ciz() {
   $('#topluKapak').hidden = !KAPAK_GOSTER || !kapaksiz || kapakIsi;
   $('#kapakSatiri').hidden = !KAPAK_GOSTER;
   $('#topluKapak').textContent = `Eksik kapakları bul (${kapaksiz})`;
-  let sonBolum = null, rafNo = 0;
+  // Rafın rengi, filtre ya da arama ne olursa olsun aynı kalsın diye sırası bütün kitaplıktaki yerine göre belirlenir.
+  const rafSirasi = new Map(grupla([...kitaplar]).map((g, i) => [g.bolum + '|' + g.baslik, i]));
+  let sonBolum = null;
   for (const g of grupla(gorunen)) {
+    const rafNo = rafSirasi.get(g.bolum + '|' + g.baslik) ?? 0;
     if (g.bolum !== sonBolum) { const bl = document.createElement('li'); bl.className = 'bolum'; bl.textContent = g.bolum; liste.append(bl); sonBolum = g.bolum; }
     const b = document.createElement('li'); b.className = 'grup'; b.textContent = g.baslik;
     const say = document.createElement('small'); say.textContent = ' · ' + g.kitaplar.length; b.append(say); liste.append(b);
-    if (gorunum === 'raf') { liste.append(rafYap(g.kitaplar, rafNo++, g.bolum === 'Seriler')); continue; }
+    if (gorunum === 'raf') { liste.append(rafYap(g.kitaplar, rafNo, g.bolum === 'Seriler')); continue; }
     for (const k of g.kitaplar) {
     const li = document.createElement('li'); li.className = 'kitap';
     const cilt = document.createElement('div'); cilt.className = 'cilt'; cilt.textContent = k.cilt || '';
@@ -590,12 +593,13 @@ const KAPAK_GOSTER = false;
 // farklı tonlarında, öteki raflardaki kitaplar ise her biri ayrı renkte olur (yan yana iki kitap aynı renk gelmez).
 const TONLAR = [4, 20, 32, 44, 58, 78, 98, 125, 148, 164, 180, 194, 207, 220, 234, 248, 262, 277, 292, 308, 322, 336, 348, 14];
 function sirtRengi(rafNo, sira, seriMi) {
-  if (seriMi) {
-    const h = TONLAR[(rafNo * 7) % TONLAR.length] + [0, 24, -20, 12, -10][sira % 5];
-    return `hsl(${(h + 360) % 360} ${38 + (sira % 3) * 9}% ${26 + [0, 9, 4, 12, 6][sira % 5]}%)`;
-  }
-  const i = (rafNo * 7 + 3 + sira * 5) % TONLAR.length;
-  return `hsl(${TONLAR[i]} ${38 + (i % 3) * 8}% ${28 + (i % 4) * 3}%)`;
+  // Her rafın (seri, yazar ya da konu) kendine ait bir rengi vardır ve o renk başka rafta kullanılmaz:
+  // ton, raf sırasına göre altın açıyla (137,5°) dağıtılır; doygunluk ve koyuluk da raftan rafa değişir.
+  // Raf içinde kitaplar aynı rengin biraz açık/koyu hallerini alır ki sırtlar birbirinden ayrılsın.
+  const h = (rafNo * 137.508 + 210) % 360;
+  const s = [46, 60, 36][rafNo % 3], l = [30, 37, 26, 33][Math.floor(rafNo / 3) % 4];
+  const ac = seriMi ? [0, 4, -3, 2][sira % 4] : [0, 6, -4, 9, 3][sira % 5];
+  return `hsl(${h.toFixed(0)} ${s + (seriMi ? 0 : [0, -8, 6][sira % 3])}% ${l + ac}%)`;
 }
 const altSatir = k => [k.yazar, k.yayinevi, k.cevirmen && 'Çev. ' + k.cevirmen, k.baskiYili].filter(Boolean).join(' · ');
 
