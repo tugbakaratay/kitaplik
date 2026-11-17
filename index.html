@@ -255,7 +255,20 @@
         <div id="bulutMesaj" class="kutu" hidden></div>
         <button type="submit" id="bulutGonder" class="ana buyuk">Giriş yap</button>
       </form>
+      <button type="button" id="sifreUnuttum" class="duz">Şifremi unuttum</button>
       <button type="button" id="girissiz" class="duz">Şimdilik girişsiz kullan</button>
+    </div>
+
+    <!-- e-postadaki şifre yenileme bağlantısından gelindiğinde -->
+    <div id="yeniSifreBolumu" style="display:contents" hidden>
+      <img class="logo" src="icon.svg" alt="">
+      <h2>Yeni şifreni belirle</h2>
+      <p class="alt" id="yeniSifreKim"></p>
+      <form id="yeniSifreForm">
+        <label class="sifreKutu">Yeni şifre<input name="sifre" type="text" autocomplete="new-password" required minlength="6"></label>
+        <div id="yeniSifreMesaj" class="kutu" hidden></div>
+        <button type="submit" class="ana buyuk">Şifreyi kaydet</button>
+      </form>
     </div>
 
     <!-- giriş yapılmışken -->
@@ -382,12 +395,13 @@ const BULUT_SABIT = { url: 'https://bttryupvwoliudnyhclp.supabase.co', anahtar: 
 const bulutOku = (ad, vars) => { try { return JSON.parse(localStorage.getItem(ad)) || vars; } catch { return vars; } };
 let bulutAyar = BULUT_SABIT.url ? BULUT_SABIT : bulutOku('kitaplik.bulut', { url: '', anahtar: '' });
 let oturum = bulutOku('kitaplik.oturum', null);
-let bulutDurum = '';
+let bulutDurum = '', sifreYenileme = false;
+const UYGULAMA_ADRESI = 'https://tugbakaratay.github.io/kitaplik/'; // e-postadaki bağlantılar buraya döner
 
 async function bulutIstek(yol, secenek = {}) {
   const y = await fetch(bulutAyar.url.replace(/\/+$/, '') + yol, {
     ...secenek,
-    headers: { apikey: bulutAyar.anahtar, 'Content-Type': 'application/json', ...(oturum && !yol.startsWith('/auth/') ? { Authorization: 'Bearer ' + oturum.access_token } : {}), ...(secenek.headers || {}) }
+    headers: { apikey: bulutAyar.anahtar, 'Content-Type': 'application/json', ...(oturum && !/\/auth\/v1\/(token|signup|recover)/.test(yol) ? { Authorization: 'Bearer ' + oturum.access_token } : {}), ...(secenek.headers || {}) }
   });
   const metin = await y.text();
   const veri = metin ? JSON.parse(metin) : null;
@@ -449,7 +463,9 @@ function bulutCiz() {
   $('#bulutDurum').textContent = esitleniyor ? 'Eşitleniyor…' : (bulutDurum || 'Giriş yapıldı. Kitaplığın bulutla eşitleniyor.');
   $('#bulutDurum').className = 'kutu ' + (/^Eşitlenemedi/.test(bulutDurum) ? 'hata' : 'basari');
   $('#bulutGirisBolumu').hidden = !!oturum;
-  $('#bulutAcikAlani').hidden = !oturum;
+  $('#bulutAcikAlani').hidden = !oturum || sifreYenileme;
+  $('#yeniSifreBolumu').hidden = !oturum || !sifreYenileme;
+  $('#yeniSifreKim').textContent = oturum ? oturum.eposta : '';
   $('#bulutAyarAlani').hidden = !!BULUT_SABIT.url;
   $('#yerelNot').textContent = oturum ? 'Kitaplığın bulutla eşitleniyor; giriş yaptığın her cihazda aynı liste görünür.'
     : 'Kitapların yalnızca bu cihazda duruyor. Öteki cihazlarında da görmek için sağ üstteki buluttan giriş yap.';
@@ -872,6 +888,7 @@ function hataCevir(ileti) {
   if (i.includes('not confirmed')) return 'E-posta adresin henüz onaylanmamış. Gelen kutundaki "Confirm your signup" iletisindeki bağlantıya tıkla, sonra yeniden dene.';
   if (i.includes('already registered') || i.includes('already been registered')) return 'Bu e-postayla zaten bir hesap var. "Giriş yap" sekmesini kullan.';
   if (i.includes('rate limit') || i.includes('security purposes')) return 'Çok sık denendi. Bir dakika bekleyip yeniden dene.';
+  if (i.includes('different from the old')) return 'Yeni şifre eskisinden farklı olmalı.';
   if (i.includes('password')) return 'Şifre en az 6 karakter olmalı.';
   if (i.includes('failed to fetch') || i.includes('load failed') || i.includes('networkerror')) return 'İnternet bağlantısı yok gibi görünüyor.';
   return ileti;
@@ -906,6 +923,41 @@ $('#sifreGoster').onclick = e => {
   const g = $('#bulutGirisAlani').elements.sifre, acik = g.type === 'password';
   g.type = acik ? 'text' : 'password'; e.target.textContent = acik ? 'Gizle' : 'Göster';
 };
+// Şifremi unuttum: e-postaya yenileme bağlantısı gönderir; bağlantı uygulamayı "yeni şifre" ekranıyla açar.
+$('#sifreUnuttum').onclick = async () => {
+  const eposta = $('#bulutGirisAlani').elements.eposta.value.trim();
+  if (!eposta) return hesapMesaj('hata', 'Önce e-posta adresini yaz, sonra "Şifremi unuttum"a bas.');
+  try {
+    await bulutIstek('/auth/v1/recover?redirect_to=' + encodeURIComponent(UYGULAMA_ADRESI), { method: 'POST', body: JSON.stringify({ email: eposta }) });
+    hesapMesaj('basari', `${eposta} adresine şifre yenileme bağlantısı gönderildi. İletideki bağlantıya dokun; açılan sayfada yeni şifreni belirleyeceksin. İleti birkaç dakika gecikebilir, gereksiz klasörüne de bak.`);
+  } catch (e) { hesapMesaj('hata', hataCevir(e.message)); }
+};
+$('#yeniSifreForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const kutu = $('#yeniSifreMesaj'), f = e.target;
+  try {
+    await bulutIstek('/auth/v1/user', { method: 'PUT', body: JSON.stringify({ password: f.elements.sifre.value }) });
+    f.reset(); kutu.hidden = true; sifreYenileme = false;
+    bulutDurum = 'Şifren değişti. Öteki cihazlarında yeni şifrenle giriş yap.'; bulutCiz();
+    esitle();
+  } catch (err) { kutu.hidden = false; kutu.className = 'kutu hata'; kutu.textContent = hataCevir(err.message); }
+});
+// E-postadaki bağlantıdan dönüş: adresin sonunda oturum bilgisi gelir (hesap onayı ya da şifre yenileme).
+(async () => {
+  const h = new URLSearchParams(location.hash.slice(1));
+  if (!h.get('access_token') && !h.get('error_description')) return;
+  history.replaceState(null, '', location.pathname + location.search);
+  if (!h.get('access_token')) {
+    $('#bulutDugme').click();
+    return hesapMesaj('hata', 'Bu bağlantının süresi dolmuş ya da daha önce kullanılmış. "Şifremi unuttum" ile yenisini iste.');
+  }
+  oturumKaydet({ access_token: h.get('access_token'), refresh_token: h.get('refresh_token'), expires_in: Number(h.get('expires_in')) || 3600 }, '');
+  try { oturum.eposta = (await bulutIstek('/auth/v1/user')).email || ''; localStorage.setItem('kitaplik.oturum', JSON.stringify(oturum)); } catch {}
+  sifreYenileme = h.get('type') === 'recovery';
+  bulutCiz(); if (!$('#bulutPencere').open) $('#bulutPencere').showModal();
+  if (!sifreYenileme) esitle();
+})();
+
 $('#girissiz').onclick = () => { try { localStorage.setItem('kitaplik.girissiz', '1'); } catch {} $('#bulutPencere').close(); };
 $('#bulutSimdi').onclick = () => esitle(false);
 $('#bulutCikis').onclick = () => { oturumKaydet(null); bulutDurum = ''; hesapMesaj('', 'Çıkış yapıldı. Kitaplar bu cihazda durmaya devam eder.'); bulutCiz(); };
