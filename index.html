@@ -61,6 +61,8 @@
   .sekme { display: grid; grid-template-columns: 1fr 1fr; background: var(--kart); border: 1px solid var(--cizgi); border-radius: 12px; padding: 4px; }
   .sekme button { border: 0; background: none; border-radius: 9px; padding: 10px; color: var(--soluk); }
   .sekme button.secili { background: var(--vurgu); color: var(--vurgu-yazi); font-weight: 600; }
+  .sekme.dortlu { grid-template-columns: repeat(4, 1fr); margin-top: 10px; }
+  .sekme.dortlu button { padding: 9px 2px; font-size: 14.5px; white-space: nowrap; }
   .hesap form { display: grid; gap: 10px; text-align: left; }
   .hesap label { font-size: 13px; color: var(--soluk); display: block; }
   .hesap input { margin-top: 4px; padding: 14px; border-radius: 12px; font-size: 17px; color: var(--yazi); }
@@ -163,6 +165,12 @@
     <button id="topluDugme">Toplu ekle</button>
     <button id="disaDugme">Dışa aktar (CSV)</button>
     <a class="dugme" href="/cep-kopyasi" download="kitaplik.html">Çevrimdışı kopya indir</a>
+  </div>
+  <div class="sekme dortlu" id="duzenSec" role="tablist" aria-label="Raf düzeni">
+    <button type="button" data-duzen="yazar" role="tab">Yazarlar</button>
+    <button type="button" data-duzen="seri" role="tab">Seriler</button>
+    <button type="button" data-duzen="yayinevi" role="tab">Yayınevleri</button>
+    <button type="button" data-duzen="konu" role="tab">Konular</button>
   </div>
   <div class="aramaSatir">
     <input id="ara" type="search" placeholder="Kitap, yazar, yayınevi ara…" autocomplete="off">
@@ -546,14 +554,13 @@ function ciz() {
   $('#kapakSatiri').hidden = !KAPAK_GOSTER;
   $('#topluKapak').textContent = `Eksik kapakları bul (${kapaksiz})`;
   // Rafın rengi, filtre ya da arama ne olursa olsun aynı kalsın diye sırası bütün kitaplıktaki yerine göre belirlenir.
-  const rafSirasi = new Map(grupla([...kitaplar]).map((g, i) => [g.bolum + '|' + g.baslik, i]));
-  let sonBolum = null;
+  const rafSirasi = new Map(grupla([...kitaplar]).map((g, i) => [g.baslik, i]));
+  for (const d of document.querySelectorAll('#duzenSec button')) d.classList.toggle('secili', d.dataset.duzen === duzen);
   for (const g of grupla(gorunen)) {
-    const rafNo = rafSirasi.get(g.bolum + '|' + g.baslik) ?? 0;
-    if (g.bolum !== sonBolum) { const bl = document.createElement('li'); bl.className = 'bolum'; bl.textContent = g.bolum; liste.append(bl); sonBolum = g.bolum; }
+    const rafNo = rafSirasi.get(g.baslik) ?? 0;
     const b = document.createElement('li'); b.className = 'grup'; b.textContent = g.baslik;
     const say = document.createElement('small'); say.textContent = ' · ' + g.kitaplar.length; b.append(say); liste.append(b);
-    if (gorunum === 'raf') { liste.append(rafYap(g.kitaplar, rafNo, g.bolum === 'Seriler')); continue; }
+    if (gorunum === 'raf') { liste.append(rafYap(g.kitaplar, rafNo, duzen === 'seri')); continue; }
     for (const k of g.kitaplar) {
     const li = document.createElement('li'); li.className = 'kitap';
     const cilt = document.createElement('div'); cilt.className = 'cilt'; cilt.textContent = k.cilt || '';
@@ -603,31 +610,36 @@ function sirtRengi(rafNo, sira, seriMi) {
 }
 const altSatir = k => [k.yazar, k.yayinevi, k.cevirmen && 'Çev. ' + k.cevirmen, k.baskiYili].filter(Boolean).join(' · ');
 
-// Rafların düzeni:
-//   Seriler  : serisi olan kitaplar, seri seri ve cilt sırasıyla.
-//   Konular  : serisi olmayıp "konu rafı" yazılı kitaplar (Psikoloji, Programlama, Beslenme…), içinde yazara göre.
-//   Yazarlar : geri kalanlar yazarına göre; içinde yayınevine göre. Tek kitabı olan yazarlar "Diğer yazarlar" rafında toplanır.
+// Raf düzenleri: aynı kitaplar dört ayrı biçimde raflanabilir; hangisi seçilirse seçilsin bütün kitaplar görünür.
+//   yazar    : her yazarın kendi rafı (içinde seri, cilt, yayınevi sırası). Tek kitabı olanlar "Diğer yazarlar" rafında.
+//   seri     : her serinin kendi rafı, cilt sırasıyla. Serisi olmayanlar sonda "Seri dışı" rafında.
+//   yayinevi : her yayınevinin kendi rafı (içinde yazara göre). Tek kitabı olanlar "Diğer yayınevleri" rafında.
+//   konu     : her konunun kendi rafı (Tarih, Psikoloji…). Konusu yazılmamış olanlar sonda "Edebiyat ve diğerleri" rafında.
+let duzen = 'yazar';
+try { duzen = localStorage.getItem('kitaplik.duzen') || 'yazar'; } catch {}
+const DUZENLER = {
+  yazar:    { alan: 'yazar',    bos: 'Yazarı belirsiz',        diger: 'Diğer yazarlar' },
+  seri:     { alan: 'seri',     bos: 'Seri dışı',              diger: '' },
+  yayinevi: { alan: 'yayinevi', bos: 'Yayınevi belirsiz',      diger: 'Diğer yayınevleri' },
+  konu:     { alan: 'tur',      bos: 'Edebiyat ve diğerleri',  diger: '' },
+};
 function grupla(liste) {
-  const seri = new Map(), konu = new Map(), yazar = new Map();
-  const ekle = (m, a, k) => { if (!m.has(a)) m.set(a, []); m.get(a).push(k); };
-  for (const k of liste) {
-    if (k.seri) ekle(seri, k.seri, k);
-    else if (k.tur) ekle(konu, k.tur, k);
-    else ekle(yazar, k.yazar || 'Yazarı belirsiz', k);
+  const d = DUZENLER[duzen] || DUZENLER.yazar;
+  const son = s => s || '￿';
+  const seriSirasi = (x, y) => sirala(son(x.seri), son(y.seri)) || sirala(son(x.cilt), son(y.cilt)) || sirala(x.ad, y.ad);
+  const yazarSirasi = (x, y) => sirala(son(x.yazar), son(y.yazar)) || seriSirasi(x, y);
+  const icSira = duzen === 'yazar' ? ((x, y) => seriSirasi(x, y) || sirala(son(x.yayinevi), son(y.yayinevi))) : duzen === 'seri' ? seriSirasi : yazarSirasi;
+  const tumSayi = new Map(); // "tek kitaplı" kararı aramaya göre değil, bütün kitaplığa göre verilir
+  for (const k of kitaplar) tumSayi.set(k[d.alan] || '', (tumSayi.get(k[d.alan] || '') || 0) + 1);
+  const raflar = new Map();
+  for (const k of liste) { const a = k[d.alan] || ''; if (!raflar.has(a)) raflar.set(a, []); raflar.get(a).push(k); }
+  const cikti = [], tekler = [];
+  for (const a of [...raflar.keys()].filter(Boolean).sort(sirala)) {
+    if (d.diger && tumSayi.get(a) < 2) { tekler.push(...raflar.get(a)); continue; }
+    cikti.push({ baslik: a, kitaplar: raflar.get(a).sort(icSira) });
   }
-  const son = s => s || '￿', ada = (x, y) => sirala(x.ad, y.ad);
-  const cikti = [];
-  for (const a of [...seri.keys()].sort(sirala)) cikti.push({ bolum: 'Seriler', baslik: a, kitaplar: seri.get(a).sort((x, y) => sirala(son(x.cilt), son(y.cilt)) || ada(x, y)) });
-  const tekler = [];
-  for (const a of [...yazar.keys()].sort(sirala)) {
-    const ks = yazar.get(a);
-    if (ks.length < 2) { tekler.push(...ks); continue; }
-    cikti.push({ bolum: 'Yazarlar', baslik: a, kitaplar: ks.sort((x, y) => sirala(son(x.yayinevi), son(y.yayinevi)) || ada(x, y)) });
-  }
-  if (tekler.length) cikti.push({ bolum: 'Yazarlar', baslik: 'Diğer yazarlar', kitaplar: tekler.sort((x, y) => sirala(son(x.yazar), son(y.yazar)) || ada(x, y)) });
-  for (const a of [...konu.keys()].sort(sirala)) {
-    cikti.push({ bolum: 'Konular', baslik: a, kitaplar: konu.get(a).sort((x, y) => sirala(son(x.yazar), son(y.yazar)) || sirala(son(x.yayinevi), son(y.yayinevi)) || ada(x, y)) });
-  }
+  if (tekler.length) cikti.push({ baslik: d.diger, kitaplar: tekler.sort((x, y) => sirala(son(x[d.alan]), son(y[d.alan])) || yazarSirasi(x, y)) });
+  if (raflar.has('')) cikti.push({ baslik: d.bos, kitaplar: raflar.get('').sort(yazarSirasi) });
   return cikti;
 }
 
@@ -1043,6 +1055,13 @@ $('#bulutCikis').onclick = async () => {
   if (!yerelMod) { try { await istek('/api/bulut/cikis', 'POST'); } catch {} oturum = null; } else oturumKaydet(null);
   bulutDurum = ''; hesapMesaj('', 'Çıkış yapıldı. Kitaplar bu cihazda durmaya devam eder.'); bulutCiz(); };
 bulutCiz();
+
+// ---------- raf düzeni seçimi ----------
+for (const d of document.querySelectorAll('#duzenSec button')) d.onclick = () => {
+  duzen = d.dataset.duzen;
+  try { localStorage.setItem('kitaplik.duzen', duzen); } catch {}
+  ciz(); scrollTo({ top: 0 });
+};
 
 // ---------- menü ve filtre ----------
 $('#menuDugme').onclick = e => { e.stopPropagation(); const m = $('#menu'); m.hidden = !m.hidden; $('#menuDugme').setAttribute('aria-expanded', String(!m.hidden)); };
