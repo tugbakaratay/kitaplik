@@ -201,7 +201,7 @@
       <label class="tam">Konu rafı<input name="tur" list="lTur" placeholder="örn. Psikoloji · boş bırakırsan yazarına göre dizilir" autocomplete="off"></label>
       <label class="tam onay"><input type="checkbox" name="okundu"> Okudum</label>
       <label class="tam">Not<textarea name="not" rows="3" placeholder="Baskı sayısı, kapak, kutu seti, kimde olduğu…"></textarea></label>
-      <div class="tam">
+      <div class="tam" id="kapakSatiri">
         <label for="kapakGirdi">Kapak görseli</label>
         <div class="kapakSatir">
           <input id="kapakGirdi" name="kapak" inputmode="url" placeholder="Görsel adresi (boş kalabilir)" autocomplete="off">
@@ -542,14 +542,15 @@ function ciz() {
   $('#filtreDugme').textContent = etkin ? `Filtre (${etkin})` : 'Filtrele';
   $('#filtreDugme').classList.toggle('dolu', etkin > 0);
   const kapaksiz = kitaplar.filter(k => !k.kapak).length;
-  $('#topluKapak').hidden = !kapaksiz || kapakIsi;
+  $('#topluKapak').hidden = !KAPAK_GOSTER || !kapaksiz || kapakIsi;
+  $('#kapakSatiri').hidden = !KAPAK_GOSTER;
   $('#topluKapak').textContent = `Eksik kapakları bul (${kapaksiz})`;
-  let sonBolum = null;
+  let sonBolum = null, rafNo = 0;
   for (const g of grupla(gorunen)) {
     if (g.bolum !== sonBolum) { const bl = document.createElement('li'); bl.className = 'bolum'; bl.textContent = g.bolum; liste.append(bl); sonBolum = g.bolum; }
     const b = document.createElement('li'); b.className = 'grup'; b.textContent = g.baslik;
     const say = document.createElement('small'); say.textContent = ' · ' + g.kitaplar.length; b.append(say); liste.append(b);
-    if (gorunum === 'raf') { liste.append(rafYap(g.kitaplar)); continue; }
+    if (gorunum === 'raf') { liste.append(rafYap(g.kitaplar, rafNo++, g.bolum === 'Seriler')); continue; }
     for (const k of g.kitaplar) {
     const li = document.createElement('li'); li.className = 'kitap';
     const cilt = document.createElement('div'); cilt.className = 'cilt'; cilt.textContent = k.cilt || '';
@@ -581,7 +582,21 @@ let gorunum = 'raf';
 try { gorunum = localStorage.getItem('kitaplik.gorunum') || 'raf'; } catch {}
 const RENKLER = ['#7b2d26', '#1f4e5f', '#3d5a3a', '#5b3a6b', '#8a5a1f', '#2f3e5c', '#6b3f2a', '#474747', '#874e4e', '#2e6259', '#734a12', '#4b2f4f'];
 const karma = s => { let h = 7; for (const c of String(s)) h = (h * 31 + c.codePointAt(0)) >>> 0; return h; };
-const renkSec = k => RENKLER[karma(duz(k.seri || k.yayinevi || k.ad)) % RENKLER.length]; // aynı seri aynı renk
+const renkSec = k => RENKLER[karma(duz(k.seri || k.yayinevi || k.ad)) % RENKLER.length];
+// Kapak görselleri şimdilik kapalı: kaynak pek çok kitapta kapak bulamadığı için raf tutarsız görünüyordu.
+// true yapılırsa kayıtlı kapak adresleri, "Kapak bul" ve "Eksik kapakları bul" yeniden görünür; veriler silinmedi.
+const KAPAK_GOSTER = false;
+// Sırt renkleri: 24 tonluk palet. Yan yana raflar birbirinden uzak tonlar alır; bir serinin ciltleri aynı ailenin
+// farklı tonlarında, öteki raflardaki kitaplar ise her biri ayrı renkte olur (yan yana iki kitap aynı renk gelmez).
+const TONLAR = [4, 20, 32, 44, 58, 78, 98, 125, 148, 164, 180, 194, 207, 220, 234, 248, 262, 277, 292, 308, 322, 336, 348, 14];
+function sirtRengi(rafNo, sira, seriMi) {
+  if (seriMi) {
+    const h = TONLAR[(rafNo * 7) % TONLAR.length] + [0, 24, -20, 12, -10][sira % 5];
+    return `hsl(${(h + 360) % 360} ${38 + (sira % 3) * 9}% ${26 + [0, 9, 4, 12, 6][sira % 5]}%)`;
+  }
+  const i = (rafNo * 7 + 3 + sira * 5) % TONLAR.length;
+  return `hsl(${TONLAR[i]} ${38 + (i % 3) * 8}% ${28 + (i % 4) * 3}%)`;
+}
 const altSatir = k => [k.yazar, k.yayinevi, k.cevirmen && 'Çev. ' + k.cevirmen, k.baskiYili].filter(Boolean).join(' · ');
 
 // Rafların düzeni:
@@ -612,15 +627,16 @@ function grupla(liste) {
   return cikti;
 }
 
-function rafYap(ks) {
+function rafYap(ks, rafNo, seriMi) {
   {
     const raf = document.createElement('li'); raf.className = 'raf';
+    let sira = 0;
     for (const k of ks) {
       const h = karma(k.id || k.ad);
       const yuva = document.createElement('div'); yuva.className = 'yuva';
       const s = document.createElement('button'); s.type = 'button'; s.className = 'sirt' + (k.okundu ? ' okunmus' : '');
       s.dataset.id = k.id; s.title = k.ad; s.setAttribute('aria-label', k.ad + (k.okundu ? ' (okundu)' : ''));
-      s.style.setProperty('--renk', renkSec(k));
+      s.style.setProperty('--renk', sirtRengi(rafNo, sira++, seriMi));
       s.style.width = (28 + h % 4 * 4 + Math.min(10, Math.floor(k.ad.length / 4))) + 'px';
       s.style.height = (150 + karma(k.seri || k.id || k.ad) % 5 * 8) + 'px'; // bir serinin ciltleri aynı boyda
       // Sırt dar: "Harry Potter ve Felsefe Taşı" serisinin rafında "Felsefe Taşı" diye yazılır.
@@ -642,13 +658,14 @@ const azHareket = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const sirtBul = id => document.querySelector(`.sirt[data-id="${id}"]`);
 
 function kapakDoldur(k) {
-  const kutu = $('#kapakKutu'); kutu.replaceChildren(); kutu.style.setProperty('--renk', renkSec(k));
+  const sirt = sirtBul(k.id);
+  const kutu = $('#kapakKutu'); kutu.replaceChildren(); kutu.style.setProperty('--renk', (sirt && sirt.style.getPropertyValue('--renk')) || renkSec(k));
   const cizim = document.createElement('div'); cizim.className = 'cizim';
   const b = document.createElement('b'); b.textContent = k.ad;
   const i = document.createElement('i'); i.textContent = k.yazar || '';
   const y = document.createElement('span'); y.textContent = k.yayinevi || '';
   cizim.append(b, i, y); kutu.append(cizim);
-  if (/^https?:\/\//.test(k.kapak || '')) { // görsel yüklenemezse çizilmiş kapak kalır
+  if (KAPAK_GOSTER && /^https?:\/\//.test(k.kapak || '')) { // görsel yüklenemezse çizilmiş kapak kalır
     const img = new Image(); img.alt = k.ad + ' kapağı'; img.referrerPolicy = 'no-referrer';
     img.onload = () => { if (vitrindeki === k && img.naturalWidth > 10) { cizim.remove(); kutu.append(img); } };
     img.src = k.kapak;
