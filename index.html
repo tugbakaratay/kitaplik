@@ -36,7 +36,42 @@
   button.tehlike { color: var(--tehlike); }
   button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid var(--altin); outline-offset: 1px; }
   input, select, textarea { width: 100%; border: 1px solid var(--cizgi); background: var(--kart); border-radius: 8px; padding: 9px 10px; }
-  #ara { margin-top: 10px; font-size: 17px; }
+  #ara { font-size: 17px; border-radius: 12px; padding: 11px 14px; }
+  header .ic { position: relative; }
+  .aramaSatir { display: flex; gap: 8px; margin-top: 10px; }
+  .aramaSatir input { flex: 1; min-width: 0; }
+  .aramaSatir button { flex: none; border-radius: 12px; }
+  .aramaSatir button.dolu { border-color: var(--altin); color: var(--altin); font-weight: 600; }
+  .yuvarlak { flex: none; width: 42px; height: 42px; padding: 0; border-radius: 50%; display: grid; place-items: center; font-weight: 700; font-size: 17px; }
+  .yuvarlak.acik { background: var(--vurgu); color: var(--vurgu-yazi); border-color: var(--vurgu); }
+  .menu { position: absolute; right: 16px; top: 58px; z-index: 7; min-width: 220px; display: grid; padding: 6px; background: var(--kart);
+    border: 1px solid var(--cizgi); border-radius: 14px; box-shadow: 0 12px 34px rgba(0,0,0,.28); }
+  .menu button, .menu a.dugme { border: 0; background: none; text-align: left; padding: 12px; border-radius: 9px; display: block; }
+  .menu button:hover, .menu a.dugme:hover { background: var(--zemin); }
+  .fab { position: fixed; right: 18px; bottom: calc(18px + env(safe-area-inset-bottom)); z-index: 8; width: 58px; height: 58px; padding: 0 0 4px;
+    border: 0; border-radius: 50%; background: var(--vurgu); color: var(--vurgu-yazi); font-size: 32px; line-height: 1; box-shadow: 0 8px 22px rgba(0,0,0,.35); }
+  /* --- hesap ekranı --- */
+  dialog.tamEkran { width: 100vw; max-width: 100vw; height: 100dvh; max-height: 100dvh; margin: 0; padding: 0; border: 0; border-radius: 0; background: var(--zemin); }
+  .hesap { position: relative; max-width: 400px; min-height: 100%; margin: 0 auto; padding: calc(34px + env(safe-area-inset-top)) 24px 30px;
+    display: flex; flex-direction: column; gap: 14px; text-align: center; }
+  .hesap .kapat { position: absolute; right: 14px; top: calc(12px + env(safe-area-inset-top)); border: 0; background: none; font-size: 28px; line-height: 1; color: var(--soluk); padding: 6px 10px; }
+  .hesap img.logo { width: 76px; height: 76px; margin: 6px auto 0; border-radius: 20px; }
+  .hesap h2 { font: 600 25px/1.2 Georgia, "Times New Roman", serif; margin: 4px 0 0; }
+  .hesap .alt { font-size: 15px; margin: 0 0 6px; }
+  .sekme { display: grid; grid-template-columns: 1fr 1fr; background: var(--kart); border: 1px solid var(--cizgi); border-radius: 12px; padding: 4px; }
+  .sekme button { border: 0; background: none; border-radius: 9px; padding: 10px; color: var(--soluk); }
+  .sekme button.secili { background: var(--vurgu); color: var(--vurgu-yazi); font-weight: 600; }
+  .hesap form { display: grid; gap: 10px; text-align: left; }
+  .hesap label { font-size: 13px; color: var(--soluk); display: block; }
+  .hesap input { margin-top: 4px; padding: 14px; border-radius: 12px; font-size: 17px; color: var(--yazi); }
+  .sifreKutu { position: relative; }
+  .sifreKutu button { position: absolute; right: 6px; bottom: 7px; border: 0; background: none; color: var(--soluk); font-size: 13px; padding: 8px; }
+  .buyuk { width: 100%; padding: 15px; border-radius: 12px; font-size: 17px; }
+  .duz { border: 0; background: none; color: var(--soluk); text-decoration: underline; padding: 8px; }
+  .kutu { border-radius: 12px; padding: 12px 14px; font-size: 14.5px; text-align: left; border: 1px solid var(--cizgi); background: var(--kart); }
+  .kutu.hata { border-color: var(--tehlike); color: var(--tehlike); }
+  .kutu.basari { border-color: var(--altin); }
+  .avatar { width: 76px; height: 76px; margin: 6px auto 0; border-radius: 50%; display: grid; place-items: center; background: var(--vurgu); color: var(--vurgu-yazi); font: 600 32px Georgia, serif; }
   .filtreler { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 8px; }
   @media (max-width: 640px) { .filtreler { grid-template-columns: 1fr 1fr; } }
   main.ic { padding-bottom: 60px; }
@@ -108,7 +143,7 @@
   #kapakAdaylar button { flex: none; padding: 0; border: 2px solid transparent; border-radius: 6px; overflow: hidden; background: none; }
   #kapakAdaylar button.secili { border-color: var(--altin); }
   #kapakAdaylar img { display: block; height: 110px; width: auto; min-width: 60px; background: var(--cizgi); }
-  #bildirim { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); background: var(--yazi); color: var(--zemin);
+  #bildirim { position: fixed; z-index: 30; left: 50%; bottom: calc(90px + env(safe-area-inset-bottom)); transform: translateX(-50%); background: var(--yazi); color: var(--zemin);
     padding: 9px 16px; border-radius: 20px; font-size: 14px; opacity: 0; transition: opacity .2s; pointer-events: none; max-width: 90vw; }
   #bildirim.acik { opacity: 1; }
 </style>
@@ -117,15 +152,20 @@
 <header><div class="ic">
   <div class="ust">
     <h1>Kitaplık <small id="sayac"></small></h1>
-    <button id="gorunumDugme"></button>
-    <button id="bulutDugme">Bulut</button>
-    <button id="topluDugme">Toplu ekle</button>
-    <button id="disaDugme" title="Tüm kitapları CSV dosyası olarak indir">Dışa aktar</button>
-    <a class="dugme" href="/cep-kopyasi" download="kitaplik.html" title="Telefona indirilen, internetsiz açılan salt okunur kopya">Çevrimdışı kopya</a>
-    <button id="ekleDugme" class="ana">+ Kitap ekle</button>
+    <button id="bulutDugme" class="yuvarlak" aria-label="Hesap ve bulut eşitleme"></button>
+    <button id="menuDugme" class="yuvarlak" aria-label="Menü" aria-expanded="false">⋯</button>
   </div>
-  <input id="ara" type="search" placeholder="Ara: kitap, yazar, çevirmen, not…" autocomplete="off">
-  <div class="filtreler">
+  <div id="menu" class="menu" hidden>
+    <button id="gorunumDugme"></button>
+    <button id="topluDugme">Toplu ekle</button>
+    <button id="disaDugme">Dışa aktar (CSV)</button>
+    <a class="dugme" href="/cep-kopyasi" download="kitaplik.html">Çevrimdışı kopya indir</a>
+  </div>
+  <div class="aramaSatir">
+    <input id="ara" type="search" placeholder="Kitap, yazar, yayınevi ara…" autocomplete="off">
+    <button id="filtreDugme" aria-expanded="false">Filtrele</button>
+  </div>
+  <div class="filtreler" id="filtreler" hidden>
     <select id="fSeri" aria-label="Seri"></select>
     <select id="fYazar" aria-label="Yazar"></select>
     <select id="fYayinevi" aria-label="Yayınevi"></select>
@@ -139,8 +179,9 @@
   <ul id="liste"></ul>
   <div id="bos" class="bos" hidden></div>
   <p style="text-align:center;margin-top:20px"><button id="topluKapak" hidden></button></p>
-  <p id="yerelNot" class="ipucu" hidden style="text-align:center;margin-top:24px">Kitapların bu telefonun içinde durur, internete gönderilmez. Ara sıra "Dışa aktar" ile yedek al.</p>
+  <p id="yerelNot" class="ipucu" hidden style="text-align:center;margin-top:24px"></p>
 </main>
+<button id="ekleDugme" class="fab" aria-label="Kitap ekle">+</button>
 
 <dialog id="kitapPencere">
   <form id="kitapForm" method="dialog">
@@ -190,29 +231,42 @@
   </div>
 </dialog>
 
-<dialog id="bulutPencere">
-  <h2>Bulut eşitleme</h2>
-  <p class="ipucu">Giriş yaptığın her cihaz aynı kitaplığı görür. Uygulama internetsiz de açılır; bağlantı gelince kendiliğinden eşitlenir.</p>
-  <p id="bulutDurum" class="ipucu" style="color:var(--yazi)"></p>
-  <form id="bulutGirisAlani" class="form" style="grid-template-columns:1fr">
-    <div id="bulutAyarAlani" style="display:grid;gap:10px">
-      <label>Supabase proje adresi<input name="url" inputmode="url" placeholder="https://….supabase.co" autocomplete="off"></label>
-      <label>Herkese açık anahtar (publishable / anon)<input name="anahtar" autocomplete="off"></label>
+<dialog id="bulutPencere" class="tamEkran">
+  <div class="hesap">
+    <button type="button" class="kapat" data-kapat aria-label="Kapat">×</button>
+
+    <!-- giriş yapılmamışken -->
+    <div id="bulutGirisBolumu" style="display:contents">
+      <img class="logo" src="icon.svg" alt="">
+      <h2>Kitaplığın her yerde</h2>
+      <p class="alt">Giriş yap; telefonunda ve bilgisayarında aynı kitaplığı gör.</p>
+      <div class="sekme" role="tablist">
+        <button type="button" id="sekmeGiris" class="secili" role="tab">Giriş yap</button>
+        <button type="button" id="sekmeKaydol" role="tab">Hesap oluştur</button>
+      </div>
+      <form id="bulutGirisAlani">
+        <div id="bulutAyarAlani" style="display:grid;gap:10px">
+          <label>Supabase proje adresi<input name="url" inputmode="url" placeholder="https://….supabase.co" autocomplete="off"></label>
+          <label>Herkese açık anahtar<input name="anahtar" autocomplete="off"></label>
+        </div>
+        <label>E-posta<input name="eposta" type="email" inputmode="email" autocomplete="username" autocapitalize="none" required></label>
+        <label class="sifreKutu">Şifre<input name="sifre" type="password" autocomplete="current-password" required minlength="6">
+          <button type="button" id="sifreGoster">Göster</button></label>
+        <div id="bulutMesaj" class="kutu" hidden></div>
+        <button type="submit" id="bulutGonder" class="ana buyuk">Giriş yap</button>
+      </form>
+      <button type="button" id="girissiz" class="duz">Şimdilik girişsiz kullan</button>
     </div>
-    <label>E-posta<input name="eposta" type="email" autocomplete="username" required></label>
-    <label>Şifre<input name="sifre" type="password" autocomplete="current-password" required minlength="6"></label>
-    <div class="dugmeler">
-      <button type="button" id="bulutKaydol">İlk kez: hesap oluştur</button>
-      <span class="bosluk"></span>
-      <button type="button" data-kapat>Kapat</button>
-      <button type="submit" class="ana">Giriş yap</button>
+
+    <!-- giriş yapılmışken -->
+    <div id="bulutAcikAlani" style="display:contents" hidden>
+      <div class="avatar" id="hesapAvatar"></div>
+      <h2 id="hesapEposta" style="font-size:19px;overflow-wrap:anywhere"></h2>
+      <div id="bulutDurum" class="kutu basari"></div>
+      <button type="button" id="bulutSimdi" class="ana buyuk">Şimdi eşitle</button>
+      <button type="button" class="buyuk" data-kapat>Kitaplığa dön</button>
+      <button type="button" id="bulutCikis" class="duz">Çıkış yap</button>
     </div>
-  </form>
-  <div id="bulutAcikAlani" class="dugmeler" hidden>
-    <button type="button" id="bulutCikis">Çıkış yap</button>
-    <span class="bosluk"></span>
-    <button type="button" data-kapat>Kapat</button>
-    <button type="button" id="bulutSimdi" class="ana">Şimdi eşitle</button>
   </div>
 </dialog>
 
@@ -355,7 +409,7 @@ let esitleniyor = false, esitleBekleyen = null;
 async function esitle(sessiz = true) {
   if (!oturum || !bulutAyar.url || esitleniyor) return;
   if (!navigator.onLine) { bulutDurum = 'Çevrimdışı; bağlantı gelince eşitlenecek.'; return bulutCiz(); }
-  esitleniyor = true;
+  esitleniyor = true; bulutCiz();
   try {
     await oturumTazele();
     const uzak = [];
@@ -386,11 +440,19 @@ addEventListener('online', () => esitle());
 
 function bulutCiz() {
   const d = $('#bulutDugme'); if (!d) return;
-  d.textContent = oturum ? 'Bulut ✓' : 'Bulut';
-  $('#bulutDurum').textContent = oturum ? `${oturum.eposta} ile giriş yapıldı. ${bulutDurum}` : (bulutAyar.url ? 'Giriş yapılmadı.' : 'Bulut henüz ayarlanmadı.');
-  $('#bulutGirisAlani').hidden = !!oturum;
+  const harf = oturum ? (oturum.eposta || '?').trim().charAt(0).toLocaleUpperCase('tr') : '';
+  d.textContent = oturum ? harf : '☁';
+  d.classList.toggle('acik', !!oturum);
+  d.title = oturum ? 'Hesap: ' + oturum.eposta : 'Giriş yap';
+  $('#hesapAvatar').textContent = harf;
+  $('#hesapEposta').textContent = oturum ? oturum.eposta : '';
+  $('#bulutDurum').textContent = esitleniyor ? 'Eşitleniyor…' : (bulutDurum || 'Giriş yapıldı. Kitaplığın bulutla eşitleniyor.');
+  $('#bulutDurum').className = 'kutu ' + (/^Eşitlenemedi/.test(bulutDurum) ? 'hata' : 'basari');
+  $('#bulutGirisBolumu').hidden = !!oturum;
   $('#bulutAcikAlani').hidden = !oturum;
   $('#bulutAyarAlani').hidden = !!BULUT_SABIT.url;
+  $('#yerelNot').textContent = oturum ? 'Kitaplığın bulutla eşitleniyor; giriş yaptığın her cihazda aynı liste görünür.'
+    : 'Kitapların yalnızca bu cihazda duruyor. Öteki cihazlarında da görmek için sağ üstteki buluttan giriş yap.';
 }
 
 async function yukle(esitlensin = true) {
@@ -432,7 +494,10 @@ function ciz() {
     : '';
 
   const liste = $('#liste'); liste.replaceChildren();
-  $('#gorunumDugme').textContent = gorunum === 'raf' ? 'Liste' : 'Raf';
+  $('#gorunumDugme').textContent = gorunum === 'raf' ? 'Liste görünümü' : 'Raf görünümü';
+  const etkin = ['#fSeri', '#fYazar', '#fYayinevi', '#fDurum'].filter(id => $(id).value).length;
+  $('#filtreDugme').textContent = etkin ? `Filtre (${etkin})` : 'Filtrele';
+  $('#filtreDugme').classList.toggle('dolu', etkin > 0);
   const kapaksiz = kitaplar.filter(k => !k.kapak).length;
   $('#topluKapak').hidden = !kapaksiz || kapakIsi;
   $('#topluKapak').textContent = `Eksik kapakları bul (${kapaksiz})`;
@@ -785,36 +850,79 @@ if (yerelMod) {
 $('#bulutDugme').onclick = () => {
   const f = $('#bulutGirisAlani');
   f.elements.url.value = bulutAyar.url; f.elements.anahtar.value = bulutAyar.anahtar;
-  bulutCiz(); $('#bulutPencere').showModal();
+  hesapMesaj(); bulutCiz(); $('#bulutPencere').showModal();
 };
-async function bulutGiris(kaydol) {
-  const f = $('#bulutGirisAlani');
+let hesapModu = 'giris';
+function hesapModuSec(mod) {
+  hesapModu = mod;
+  $('#sekmeGiris').classList.toggle('secili', mod === 'giris');
+  $('#sekmeKaydol').classList.toggle('secili', mod === 'kaydol');
+  $('#bulutGonder').textContent = mod === 'giris' ? 'Giriş yap' : 'Hesap oluştur';
+  $('#bulutGirisAlani').elements.sifre.autocomplete = mod === 'giris' ? 'current-password' : 'new-password';
+  hesapMesaj();
+}
+function hesapMesaj(tur, metin) {
+  const k = $('#bulutMesaj');
+  k.hidden = !metin; k.textContent = metin || ''; k.className = 'kutu ' + (tur || '');
+}
+// Supabase'in İngilizce hata iletilerini anlaşılır Türkçeye çevirir.
+function hataCevir(ileti) {
+  const i = String(ileti || '').toLowerCase();
+  if (i.includes('invalid login')) return 'E-posta ya da şifre yanlış.';
+  if (i.includes('not confirmed')) return 'E-posta adresin henüz onaylanmamış. Gelen kutundaki "Confirm your signup" iletisindeki bağlantıya tıkla, sonra yeniden dene.';
+  if (i.includes('already registered') || i.includes('already been registered')) return 'Bu e-postayla zaten bir hesap var. "Giriş yap" sekmesini kullan.';
+  if (i.includes('rate limit') || i.includes('security purposes')) return 'Çok sık denendi. Bir dakika bekleyip yeniden dene.';
+  if (i.includes('password')) return 'Şifre en az 6 karakter olmalı.';
+  if (i.includes('failed to fetch') || i.includes('load failed') || i.includes('networkerror')) return 'İnternet bağlantısı yok gibi görünüyor.';
+  return ileti;
+}
+async function bulutGiris() {
+  const f = $('#bulutGirisAlani'), kaydol = hesapModu === 'kaydol';
   if (!f.reportValidity()) return;
   if (!BULUT_SABIT.url) {
     bulutAyar = { url: f.elements.url.value.trim(), anahtar: f.elements.anahtar.value.trim() };
-    if (!/^https:\/\/.+/.test(bulutAyar.url) || !bulutAyar.anahtar) return bildir('Önce Supabase proje adresini ve anahtarı gir.');
+    if (!/^https:\/\/.+/.test(bulutAyar.url) || !bulutAyar.anahtar) return hesapMesaj('hata', 'Önce Supabase proje adresini ve anahtarı gir.');
     try { localStorage.setItem('kitaplik.bulut', JSON.stringify(bulutAyar)); } catch {}
   }
-  const govde = JSON.stringify({ email: f.elements.eposta.value.trim(), password: f.elements.sifre.value });
+  const eposta = f.elements.eposta.value.trim();
+  const dugme = $('#bulutGonder'); dugme.disabled = true; dugme.textContent = 'Bekle…';
   try {
-    const v = await bulutIstek(kaydol ? '/auth/v1/signup' : '/auth/v1/token?grant_type=password', { method: 'POST', body: govde });
-    f.elements.sifre.value = '';
-    if (!v || !v.access_token) { bulutDurum = ''; return bildir('Hesap oluşturuldu. E-postana gelen onay bağlantısına tıkla, sonra giriş yap.'); }
-    oturumKaydet(v, f.elements.eposta.value.trim());
-    bulutDurum = 'Eşitleniyor…'; bulutCiz();
+    const v = await bulutIstek(kaydol ? '/auth/v1/signup' : '/auth/v1/token?grant_type=password', { method: 'POST', body: JSON.stringify({ email: eposta, password: f.elements.sifre.value }) });
+    if (!v || !v.access_token) {
+      hesapModuSec('giris');
+      return hesapMesaj('basari', `Hesabın oluşturuldu. ${eposta} adresine bir onay iletisi gönderdik; içindeki bağlantıya tıkla, sonra burada "Giriş yap"a bas. (Bağlantı açılınca hata sayfası görürsen önemseme.)`);
+    }
+    f.elements.sifre.value = ''; hesapMesaj();
+    oturumKaydet(v, eposta);
+    bulutDurum = ''; bulutCiz();
     await esitle(false);
-  } catch (e) { bildir((kaydol ? 'Hesap oluşturulamadı: ' : 'Giriş yapılamadı: ') + e.message); }
+  } catch (e) { hesapMesaj('hata', hataCevir(e.message)); }
+  finally { dugme.disabled = false; dugme.textContent = hesapModu === 'giris' ? 'Giriş yap' : 'Hesap oluştur'; }
 }
-$('#bulutGirisAlani').addEventListener('submit', e => { e.preventDefault(); bulutGiris(false); });
-$('#bulutKaydol').onclick = () => bulutGiris(true);
+$('#bulutGirisAlani').addEventListener('submit', e => { e.preventDefault(); bulutGiris(); });
+$('#sekmeGiris').onclick = () => hesapModuSec('giris');
+$('#sekmeKaydol').onclick = () => hesapModuSec('kaydol');
+$('#sifreGoster').onclick = e => {
+  const g = $('#bulutGirisAlani').elements.sifre, acik = g.type === 'password';
+  g.type = acik ? 'text' : 'password'; e.target.textContent = acik ? 'Gizle' : 'Göster';
+};
+$('#girissiz').onclick = () => { try { localStorage.setItem('kitaplik.girissiz', '1'); } catch {} $('#bulutPencere').close(); };
 $('#bulutSimdi').onclick = () => esitle(false);
-$('#bulutCikis').onclick = () => { oturumKaydet(null); bulutDurum = ''; bulutCiz(); bildir('Çıkış yapıldı. Kitaplar bu cihazda durmaya devam eder.'); };
+$('#bulutCikis').onclick = () => { oturumKaydet(null); bulutDurum = ''; hesapMesaj('', 'Çıkış yapıldı. Kitaplar bu cihazda durmaya devam eder.'); bulutCiz(); };
 bulutCiz();
+
+// ---------- menü ve filtre ----------
+$('#menuDugme').onclick = e => { e.stopPropagation(); const m = $('#menu'); m.hidden = !m.hidden; $('#menuDugme').setAttribute('aria-expanded', String(!m.hidden)); };
+document.addEventListener('click', e => { if (!$('#menu').hidden && !e.target.closest('#menuDugme')) { $('#menu').hidden = true; $('#menuDugme').setAttribute('aria-expanded', 'false'); } });
+$('#filtreDugme').onclick = () => { const f = $('#filtreler'); f.hidden = !f.hidden; $('#filtreDugme').setAttribute('aria-expanded', String(!f.hidden)); };
 
 $('#ekleDugme').onclick = () => pencereAc(null);
 for (const d of document.querySelectorAll('[data-kapat]')) d.onclick = () => d.closest('dialog').close();
 for (const id of ['#ara', '#fSeri', '#fYazar', '#fYayinevi', '#fDurum']) $(id).addEventListener('input', ciz);
-yukle();
+yukle().then(() => { // telefonda ilk açılış: kitaplık boşsa ve giriş yapılmamışsa giriş ekranıyla başla
+  let girissiz = false; try { girissiz = !!localStorage.getItem('kitaplik.girissiz'); } catch {}
+  if (yerelMod && !oturum && !kitaplar.length && !girissiz) $('#bulutDugme').click();
+});
 </script>
 </body>
 </html>
