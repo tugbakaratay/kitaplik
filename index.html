@@ -69,6 +69,45 @@
   #onizleme { font-size: 14px; margin-top: 8px; max-height: 180px; overflow: auto; }
   #onizleme table { border-collapse: collapse; width: 100%; }
   #onizleme td, #onizleme th { border-bottom: 1px solid var(--cizgi); padding: 3px 6px; text-align: left; white-space: nowrap; }
+  /* --- raf görünümü: kitap sırtları --- */
+  li.raf { --satir: 186px; display: flex; flex-wrap: wrap; align-items: flex-end; column-gap: 3px; row-gap: 16px;
+    padding: 0 10px 16px; margin-bottom: 8px; border-radius: 4px;
+    background: repeating-linear-gradient(to bottom, transparent 0 var(--satir), #8a623d var(--satir) calc(var(--satir) + 10px),
+      rgba(0,0,0,.18) calc(var(--satir) + 10px) calc(var(--satir) + 13px), transparent calc(var(--satir) + 13px) calc(var(--satir) + 16px)); }
+  .yuva { height: var(--satir); display: flex; align-items: flex-end; }
+  .sirt { position: relative; border: 0; padding: 14px 0 7px; border-radius: 3px 3px 1px 1px; color: #f3e9d2; cursor: pointer;
+    display: flex; flex-direction: column; align-items: center; justify-content: space-between; gap: 4px; overflow: hidden;
+    background: linear-gradient(90deg, rgba(0,0,0,.30), rgba(255,255,255,.12) 18%, rgba(0,0,0,0) 45%, rgba(0,0,0,.28)), var(--renk);
+    box-shadow: inset 0 -5px 0 rgba(0,0,0,.2), inset 0 4px 0 rgba(255,255,255,.08); transition: transform .15s; }
+  .sirt:hover, .sirt:focus-visible { transform: translateY(-9px); }
+  .sirt.cekildi { visibility: hidden; }
+  .sirt .ad { flex: 1; min-height: 0; writing-mode: vertical-rl; transform: rotate(180deg); font: 600 12px/1.15 Georgia, "Times New Roman", serif;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: .02em; }
+  .sirt .no { font: 700 11px Georgia, serif; color: #e9c479; }
+  .sirt.okunmus::after { content: ''; position: absolute; top: 0; left: 30%; width: 40%; height: 11px; background: #e0b25c;
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 65%, 0 100%); }
+  /* --- raftan çıkan kitap --- */
+  #vitrin { position: fixed; inset: 0; z-index: 20; display: flex; align-items: center; justify-content: center; padding: 16px; }
+  #vitrin .perde { position: absolute; inset: 0; background: rgba(15,10,6,.72); }
+  .sahne { position: relative; display: flex; flex-direction: column; align-items: center; gap: 14px; width: min(420px, 100%);
+    max-height: 100%; overflow-y: auto; perspective: 1200px; }
+  .kapak { flex: none; position: relative; width: min(54vw, 230px); aspect-ratio: 2 / 3; border-radius: 3px 8px 8px 3px; overflow: hidden;
+    background: var(--renk, #6b3f2a); color: #f3e9d2; box-shadow: 0 18px 40px rgba(0,0,0,.55); transform-origin: center; }
+  .kapak::before { content: ''; position: absolute; inset: 0 auto 0 0; width: 9%; z-index: 1; pointer-events: none;
+    background: linear-gradient(90deg, rgba(0,0,0,.35), rgba(255,255,255,.14) 60%, rgba(0,0,0,.12)); }
+  .kapak img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .kapak .cizim { position: absolute; inset: 0; padding: 14% 10% 9% 16%; display: flex; flex-direction: column; text-align: center; }
+  .kapak .cizim b { font: 600 clamp(17px, 5.4vw, 24px)/1.2 Georgia, "Times New Roman", serif; overflow-wrap: anywhere; }
+  .kapak .cizim i { margin-top: 10px; font: italic 14px Georgia, serif; opacity: .9; }
+  .kapak .cizim span { margin-top: auto; font-size: 12px; letter-spacing: .12em; text-transform: uppercase; opacity: .85; }
+  .kunye { width: 100%; background: var(--zemin); border: 1px solid var(--cizgi); border-radius: 12px; padding: 14px; }
+  .kunye h2 { font: 600 19px/1.25 Georgia, serif; margin: 0 0 4px; overflow-wrap: anywhere; }
+  .kapakSatir { display: flex; gap: 8px; margin-top: 3px; }
+  .kapakSatir button { flex: none; }
+  #kapakAdaylar { display: flex; gap: 8px; overflow-x: auto; margin-top: 8px; font-size: 13px; color: var(--soluk); }
+  #kapakAdaylar button { flex: none; padding: 0; border: 2px solid transparent; border-radius: 6px; overflow: hidden; background: none; }
+  #kapakAdaylar button.secili { border-color: var(--altin); }
+  #kapakAdaylar img { display: block; height: 110px; width: auto; min-width: 60px; background: var(--cizgi); }
   #bildirim { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); background: var(--yazi); color: var(--zemin);
     padding: 9px 16px; border-radius: 20px; font-size: 14px; opacity: 0; transition: opacity .2s; pointer-events: none; max-width: 90vw; }
   #bildirim.acik { opacity: 1; }
@@ -78,6 +117,7 @@
 <header><div class="ic">
   <div class="ust">
     <h1>Kitaplık <small id="sayac"></small></h1>
+    <button id="gorunumDugme"></button>
     <button id="topluDugme">Toplu ekle</button>
     <button id="disaDugme" title="Tüm kitapları CSV dosyası olarak indir">Dışa aktar</button>
     <a class="dugme" href="/cep-kopyasi" download="kitaplik.html" title="Telefona indirilen, internetsiz açılan salt okunur kopya">Çevrimdışı kopya</a>
@@ -97,6 +137,7 @@
 <main class="ic">
   <ul id="liste"></ul>
   <div id="bos" class="bos" hidden></div>
+  <p style="text-align:center;margin-top:20px"><button id="topluKapak" hidden></button></p>
   <p id="yerelNot" class="ipucu" hidden style="text-align:center;margin-top:24px">Kitapların bu telefonun içinde durur, internete gönderilmez. Ara sıra "Dışa aktar" ile yedek al.</p>
 </main>
 
@@ -113,6 +154,14 @@
       <label>Cilt no<input name="cilt" inputmode="numeric" placeholder="örn. 2" autocomplete="off"></label>
       <label class="tam onay"><input type="checkbox" name="okundu"> Okudum</label>
       <label class="tam">Not<textarea name="not" rows="3" placeholder="Baskı sayısı, kapak, kutu seti, kimde olduğu…"></textarea></label>
+      <div class="tam">
+        <label for="kapakGirdi">Kapak görseli</label>
+        <div class="kapakSatir">
+          <input id="kapakGirdi" name="kapak" inputmode="url" placeholder="Görsel adresi (boş kalabilir)" autocomplete="off">
+          <button type="button" id="kapakBul">Kapak bul</button>
+        </div>
+        <div id="kapakAdaylar"></div>
+      </div>
     </div>
     <div class="dugmeler">
       <button type="button" id="silDugme" class="tehlike" hidden>Sil</button>
@@ -139,6 +188,24 @@
     <button type="button" id="aktarDugme" class="ana" disabled>Ekle</button>
   </div>
 </dialog>
+
+<div id="vitrin" hidden>
+  <div class="perde"></div>
+  <div class="sahne" role="dialog" aria-modal="true" aria-labelledby="vAd">
+    <div id="kapakKutu" class="kapak"></div>
+    <div class="kunye">
+      <h2 id="vAd"></h2>
+      <div id="vAlt" class="alt"></div>
+      <div id="vNot" class="notu"></div>
+      <div class="dugmeler">
+        <label class="okundu"><input type="checkbox" id="vOkundu"> Okundu</label>
+        <span class="bosluk"></span>
+        <button type="button" id="vDuzenle">Düzenle</button>
+        <button type="button" id="vKapat" class="ana">Rafa koy</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <div id="bildirim" role="status"></div>
 
@@ -170,7 +237,7 @@ async function istek(yol, yontem = 'GET', govde) {
 // ---------- veri deposu ----------
 // Bilgisayardaki sunucudan (http) açıldıysa veri sunucudadır; telefona kurulan sürümde (https) telefonun içinde durur.
 const yerelMod = location.protocol === 'https:' || new URLSearchParams(location.search).has('yerel');
-const ALANLAR = ['ad', 'yazar', 'yayinevi', 'cevirmen', 'baskiYili', 'seri', 'cilt', 'not'];
+const ALANLAR = ['ad', 'yazar', 'yayinevi', 'cevirmen', 'baskiYili', 'seri', 'cilt', 'not', 'kapak'];
 const DEPO_ADI = 'kitaplik.v1';
 const anahtar = k => [k.ad, k.yayinevi, k.seri, k.cilt].map(s => String(s || '').toLocaleLowerCase('tr').trim()).join('|');
 const yeniKimlik = () => crypto.randomUUID ? crypto.randomUUID()
@@ -260,8 +327,13 @@ function ciz() {
     : '';
 
   const liste = $('#liste'); liste.replaceChildren();
+  $('#gorunumDugme').textContent = gorunum === 'raf' ? 'Liste' : 'Raf';
+  const kapaksiz = kitaplar.filter(k => !k.kapak).length;
+  $('#topluKapak').hidden = !kapaksiz || kapakIsi;
+  $('#topluKapak').textContent = `Eksik kapakları bul (${kapaksiz})`;
   let sonGrup = null;
-  for (const k of gorunen) {
+  if (gorunum === 'raf') rafCiz(gorunen, liste);
+  else for (const k of gorunen) {
     const grup = k.seri || 'Seri dışı';
     if (grup !== sonGrup) {
       const b = document.createElement('li'); b.className = 'grup'; b.textContent = grup; liste.append(b); sonGrup = grup;
@@ -290,13 +362,188 @@ function ciz() {
   bos.textContent = kitaplar.length ? 'Bu aramaya uyan kitap yok.' : 'Kitaplık boş. "+ Kitap ekle" ile ilk kitabını ekle ya da "Toplu ekle" ile liste yapıştır.';
 }
 
+// ---------- raf görünümü ----------
+let gorunum = 'raf';
+try { gorunum = localStorage.getItem('kitaplik.gorunum') || 'raf'; } catch {}
+const RENKLER = ['#7b2d26', '#1f4e5f', '#3d5a3a', '#5b3a6b', '#8a5a1f', '#2f3e5c', '#6b3f2a', '#474747', '#874e4e', '#2e6259', '#734a12', '#4b2f4f'];
+const karma = s => { let h = 7; for (const c of String(s)) h = (h * 31 + c.codePointAt(0)) >>> 0; return h; };
+const renkSec = k => RENKLER[karma(duz(k.seri || k.yayinevi || k.ad)) % RENKLER.length]; // aynı seri aynı renk
+const altSatir = k => [k.yazar, k.yayinevi, k.cevirmen && 'Çev. ' + k.cevirmen, k.baskiYili].filter(Boolean).join(' · ');
+
+function rafCiz(gorunen, liste) {
+  const gruplar = new Map();
+  for (const k of gorunen) { const g = k.seri || 'Seri dışı'; if (!gruplar.has(g)) gruplar.set(g, []); gruplar.get(g).push(k); }
+  for (const [g, ks] of gruplar) {
+    const b = document.createElement('li'); b.className = 'grup'; b.textContent = g;
+    const raf = document.createElement('li'); raf.className = 'raf';
+    for (const k of ks) {
+      const h = karma(k.id || k.ad);
+      const yuva = document.createElement('div'); yuva.className = 'yuva';
+      const s = document.createElement('button'); s.type = 'button'; s.className = 'sirt' + (k.okundu ? ' okunmus' : '');
+      s.dataset.id = k.id; s.title = k.ad; s.setAttribute('aria-label', k.ad + (k.okundu ? ' (okundu)' : ''));
+      s.style.setProperty('--renk', renkSec(k));
+      s.style.width = (28 + h % 4 * 4 + Math.min(10, Math.floor(k.ad.length / 4))) + 'px';
+      s.style.height = (150 + karma(k.seri || k.id || k.ad) % 5 * 8) + 'px'; // bir serinin ciltleri aynı boyda
+      // Sırt dar: "Harry Potter ve Felsefe Taşı" serisinin rafında "Felsefe Taşı" diye yazılır.
+      let kisa = k.ad;
+      if (k.seri && duz(k.ad).startsWith(duz(k.seri)) && k.ad.length > k.seri.length + 3) kisa = k.ad.slice(k.seri.length).replace(/^[\s:\-–—,]+(ve\s+)?/i, '') || k.ad;
+      const ad = document.createElement('span'); ad.className = 'ad'; ad.textContent = kisa;
+      s.append(ad);
+      if (k.cilt) { const no = document.createElement('span'); no.className = 'no'; no.textContent = k.cilt; s.append(no); }
+      s.onclick = () => kitapCikar(k);
+      yuva.append(s); raf.append(yuva);
+    }
+    liste.append(b, raf);
+  }
+}
+
+// Sırtına dokunulan kitap raftan çıkar, kapağı öne döner.
+let vitrindeki = null;
+const azHareket = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const sirtBul = id => document.querySelector(`.sirt[data-id="${id}"]`);
+
+function kapakDoldur(k) {
+  const kutu = $('#kapakKutu'); kutu.replaceChildren(); kutu.style.setProperty('--renk', renkSec(k));
+  const cizim = document.createElement('div'); cizim.className = 'cizim';
+  const b = document.createElement('b'); b.textContent = k.ad;
+  const i = document.createElement('i'); i.textContent = k.yazar || '';
+  const y = document.createElement('span'); y.textContent = k.yayinevi || '';
+  cizim.append(b, i, y); kutu.append(cizim);
+  if (/^https?:\/\//.test(k.kapak || '')) { // görsel yüklenemezse çizilmiş kapak kalır
+    const img = new Image(); img.alt = k.ad + ' kapağı'; img.referrerPolicy = 'no-referrer';
+    img.onload = () => { if (vitrindeki === k && img.naturalWidth > 10) { cizim.remove(); kutu.append(img); } };
+    img.src = k.kapak;
+  }
+}
+
+function sirttanDonusum(k) {
+  const sirt = sirtBul(k.id); if (!sirt) return null;
+  const a = sirt.getBoundingClientRect(), b = $('#kapakKutu').getBoundingClientRect();
+  return `translate(${a.left + a.width / 2 - b.left - b.width / 2}px, ${a.top + a.height / 2 - b.top - b.height / 2}px) scale(${a.width / b.width}, ${a.height / b.height}) rotateY(-75deg)`;
+}
+
+function kitapCikar(k) {
+  vitrindeki = k;
+  kapakDoldur(k);
+  $('#vAd').textContent = k.ad;
+  $('#vAlt').textContent = [k.seri && (k.seri + (k.cilt ? ' ' + k.cilt : '')), altSatir(k)].filter(Boolean).join(' · ');
+  $('#vNot').textContent = k.not || '';
+  $('#vOkundu').checked = !!k.okundu;
+  $('#vitrin').hidden = false;
+  const d = sirttanDonusum(k), sirt = sirtBul(k.id);
+  if (sirt) sirt.classList.add('cekildi');
+  if (!azHareket) {
+    if (d) $('#kapakKutu').animate([{ transform: d, opacity: .7 }, { transform: 'none', opacity: 1 }], { duration: 520, easing: 'cubic-bezier(.2,.8,.2,1)' });
+    $('#vitrin .perde').animate([{ opacity: 0 }, { opacity: 1 }], { duration: 300 });
+    $('#vitrin .kunye').animate([{ opacity: 0, transform: 'translateY(14px)' }, { opacity: 1, transform: 'none' }], { duration: 300, delay: 260, fill: 'backwards' });
+  }
+  $('#vKapat').focus();
+}
+
+async function vitrinKapat(animasyonlu = true) {
+  const k = vitrindeki; if (!k) return;
+  vitrindeki = null;
+  const d = animasyonlu && !azHareket && sirttanDonusum(k);
+  if (d) {
+    $('#vitrin .kunye').animate([{ opacity: 1 }, { opacity: 0 }], { duration: 150, fill: 'forwards' });
+    $('#vitrin .perde').animate([{ opacity: 1 }, { opacity: 0 }], { duration: 320, fill: 'forwards' });
+    await $('#kapakKutu').animate([{ transform: 'none' }, { transform: d, opacity: .7 }], { duration: 320, easing: 'ease-in' }).finished.catch(() => {});
+  }
+  $('#vitrin').hidden = true;
+  for (const el of [$('#vitrin .kunye'), $('#vitrin .perde')]) el.getAnimations().forEach(a => a.cancel());
+  const sirt = sirtBul(k.id); if (sirt) { sirt.classList.remove('cekildi'); sirt.focus({ preventScroll: true }); }
+}
+
+$('#vKapat').onclick = () => vitrinKapat();
+$('#vitrin .perde').onclick = () => vitrinKapat();
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && vitrindeki) vitrinKapat(); });
+$('#vDuzenle').onclick = () => { const k = vitrindeki; vitrinKapat(false); pencereAc(k); };
+$('#vOkundu').onchange = async e => {
+  const k = vitrindeki; if (!k) return;
+  try {
+    await depo.guncelle(k.id, { ...k, okundu: e.target.checked }); k.okundu = e.target.checked; ciz();
+    const sirt = sirtBul(k.id); if (sirt) sirt.classList.add('cekildi');
+  } catch (err) { e.target.checked = k.okundu; bildir(err.message); }
+};
+$('#gorunumDugme').onclick = () => {
+  gorunum = gorunum === 'raf' ? 'liste' : 'raf';
+  try { localStorage.setItem('kitaplik.gorunum', gorunum); } catch {}
+  ciz();
+};
+
+// ---------- kapak görselleri (Open Library; anahtar ya da hesap gerekmez) ----------
+const kapakAdresi = (no, boy) => `https://covers.openlibrary.org/b/id/${no}-${boy}.jpg`;
+
+// Önce Türkçe baskıların kapakları, bulunamazsa eserin genel kapakları. Her aday: { no, baslik, turkce }
+async function kapakAra(ad, yazar) {
+  const soyad = String(yazar || '').trim().split(/\s+/).pop();
+  const sorgular = [[ad + ' ' + soyad + ' language:tur', true], [ad + ' language:tur', true], [ad + ' ' + soyad, false]];
+  const adaylar = [], gorulen = new Set();
+  const ekle = (no, baslik, turkce) => { if (no && !gorulen.has(no)) { gorulen.add(no); adaylar.push({ no, baslik: baslik || '', turkce }); } };
+  for (const [s, turkce] of sorgular) {
+    try {
+      const y = await fetch('https://openlibrary.org/search.json?limit=5&lang=tr&fields=key,title,cover_i,editions&q=' + encodeURIComponent(s.trim()));
+      const veri = await y.json();
+      for (const d of veri.docs || []) for (const e of (d.editions && d.editions.docs) || []) ekle(e.cover_i, e.title, turkce);
+      if (!turkce) for (const d of veri.docs || []) ekle(d.cover_i, d.title, false);
+    } catch {}
+    if (adaylar.length >= 4) break;
+  }
+  return adaylar;
+}
+
+$('#kapakBul').onclick = async () => {
+  const f = $('#kitapForm'), kutu = $('#kapakAdaylar');
+  if (!f.elements.ad.value.trim()) return bildir('Önce kitap adını yaz.');
+  kutu.textContent = 'Aranıyor…';
+  const adaylar = await kapakAra(f.elements.ad.value, f.elements.yazar.value);
+  kutu.replaceChildren();
+  if (!adaylar.length) { kutu.textContent = navigator.onLine ? 'Kapak bulunamadı. Görsel adresini elle yapıştırabilirsin.' : 'Kapak aramak için internet gerekir.'; return; }
+  for (const a of adaylar) {
+    const d = document.createElement('button'); d.type = 'button'; d.title = a.baslik;
+    const img = new Image(); img.src = kapakAdresi(a.no, 'M'); img.alt = a.baslik; img.loading = 'lazy';
+    d.append(img);
+    d.onclick = () => {
+      f.elements.kapak.value = kapakAdresi(a.no, 'L');
+      for (const x of kutu.children) x.classList.toggle('secili', x === d);
+    };
+    kutu.append(d);
+  }
+};
+
+// Kapağı olmayan her kitap için, adı kitabın adıyla eşleşen Türkçe baskının kapağını kendiliğinden seçer.
+let kapakIsi = false;
+$('#topluKapak').onclick = async () => {
+  if (kapakIsi) return;
+  if (!navigator.onLine) return bildir('Kapak aramak için internet gerekir.');
+  kapakIsi = true; $('#topluKapak').hidden = true;
+  const eksikler = kitaplar.filter(k => !k.kapak);
+  let bulunan = 0, sira = 0;
+  for (const k of eksikler) {
+    bildir(`Kapaklar aranıyor… ${++sira} / ${eksikler.length}`);
+    const adaylar = await kapakAra(k.ad, k.yazar);
+    // Baskının adı kitabın adını tam sözcük olarak içermeli ("İki Kule" ≠ "İki Kuleli Yalı").
+    const sozcukler = s => ' ' + duz(s).replace(/[^a-z0-9]+/g, ' ').trim() + ' ';
+    const ad = sozcukler(k.ad);
+    const uygun = adaylar.find(a => a.turkce && (sozcukler(a.baslik).includes(ad) || (a.baslik.length > 5 && ad.includes(sozcukler(a.baslik)))));
+    if (uygun) {
+      try { await depo.guncelle(k.id, { ...k, kapak: kapakAdresi(uygun.no, 'L') }); k.kapak = kapakAdresi(uygun.no, 'L'); bulunan++; } catch {}
+    }
+    await new Promise(c => setTimeout(c, 350)); // kaynağı yormamak için
+  }
+  kapakIsi = false;
+  bildir(`${bulunan} kapak bulundu, ${eksikler.length - bulunan} kitap kapaksız kaldı.`);
+  ciz();
+};
+
 // ---------- ekle / düzenle ----------
 function pencereAc(k) {
   duzenlenen = k || null;
   const f = $('#kitapForm'); f.reset();
   $('#kitapBaslik').textContent = k ? 'Kitabı düzenle' : 'Kitap ekle';
   $('#silDugme').hidden = !k;
-  if (k) for (const a of ['ad', 'yazar', 'yayinevi', 'cevirmen', 'baskiYili', 'seri', 'cilt', 'not']) f.elements[a].value = k[a] || '';
+  $('#kapakAdaylar').replaceChildren();
+  if (k) for (const a of ALANLAR) f.elements[a].value = k[a] || '';
   else { // filtre seçiliyken eklenen kitap o seriye/yazara/yayınevine hazır gelsin
     f.elements.seri.value = $('#fSeri').value; f.elements.yazar.value = $('#fYazar').value; f.elements.yayinevi.value = $('#fYayinevi').value;
   }
@@ -308,7 +555,7 @@ function pencereAc(k) {
 $('#kitapForm').addEventListener('submit', async e => {
   e.preventDefault();
   const f = e.target, k = {};
-  for (const a of ['ad', 'yazar', 'yayinevi', 'cevirmen', 'baskiYili', 'seri', 'cilt', 'not']) k[a] = f.elements[a].value.trim();
+  for (const a of ALANLAR) k[a] = f.elements[a].value.trim();
   k.okundu = f.elements.okundu.checked;
   try {
     if (duzenlenen) await depo.guncelle(duzenlenen.id, k);
@@ -351,7 +598,7 @@ function csvCoz(metin) {
 const BASLIKLAR = {
   id: ['kimlik', 'id'], ad: ['ad', 'adi', 'kitap', 'kitap adi', 'baslik', 'eser'], yazar: ['yazar'], yayinevi: ['yayinevi', 'yayinci'],
   cevirmen: ['cevirmen', 'ceviren', 'ceviri'], baskiYili: ['baski yili', 'yil', 'baski', 'baskiyili'],
-  seri: ['seri', 'dizi'], cilt: ['cilt', 'cilt no', 'cilt numarasi', 'sira', 'no'], okundu: ['okundu', 'okudum', 'durum'], not: ['not', 'notlar', 'aciklama']
+  kapak: ['kapak', 'kapak gorseli', 'gorsel'], seri: ['seri', 'dizi'], cilt: ['cilt', 'cilt no', 'cilt numarasi', 'sira', 'no'], okundu: ['okundu', 'okudum', 'durum'], not: ['not', 'notlar', 'aciklama']
 };
 const VARSAYILAN_SIRA = ['ad', 'yazar', 'yayinevi', 'cevirmen', 'baskiYili', 'seri', 'cilt', 'okundu', 'not'];
 const evetMi = s => ['evet', 'e', 'x', '1', 'okundu', 'okudum', 'true', '✓', 'var'].includes(duz(s));
@@ -406,8 +653,8 @@ $('#disaDugme').onclick = async () => {
   if (!kitaplar.length) return bildir('Kitaplık boş.');
   const h = s => { s = String(s ?? ''); return /[";\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
   // "Kimlik" sütunu, aynı kitabın iki cihazda da aynı kayıt olarak eşleşmesini sağlar.
-  const satirlar = [['Ad', 'Yazar', 'Yayınevi', 'Çevirmen', 'Baskı yılı', 'Seri', 'Cilt', 'Okundu', 'Not', 'Kimlik']]
-    .concat(kitaplar.map(k => [k.ad, k.yazar, k.yayinevi, k.cevirmen, k.baskiYili, k.seri, k.cilt, k.okundu ? 'evet' : 'hayır', k.not, k.id]));
+  const satirlar = [['Ad', 'Yazar', 'Yayınevi', 'Çevirmen', 'Baskı yılı', 'Seri', 'Cilt', 'Okundu', 'Not', 'Kapak', 'Kimlik']]
+    .concat(kitaplar.map(k => [k.ad, k.yazar, k.yayinevi, k.cevirmen, k.baskiYili, k.seri, k.cilt, k.okundu ? 'evet' : 'hayır', k.not, k.kapak, k.id]));
   const dosyaAdi = `kitaplik-${new Date().toISOString().slice(0, 10)}.csv`;
   const blob = new Blob(['﻿' + satirlar.map(s => s.map(h).join(';')).join('\r\n')], { type: 'text/csv;charset=utf-8' });
   if (yerelMod && navigator.canShare) { // telefonda: paylaş menüsü (Dosyalar'a kaydet, kendine gönder…)
